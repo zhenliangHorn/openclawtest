@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文件管理器 - OpenClaw Test</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      color: #fff;
+    }
+    
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .header h1 {
+      font-size: 1.8rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .path-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 10px 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .path-bar input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.8);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 1);
+    }
+    
+    .file-list {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      overflow: hidden;
+    }
+    
+    .file-item {
+      display: flex;
+      align-items: center;
+      padding: 15px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      transition: background 0.2s;
+    }
+    
+    .file-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .file-icon {
+      font-size: 1.5rem;
+      margin-right: 15px;
+      width: 30px;
+      text-align: center;
+    }
+    
+    .file-info {
+      flex: 1;
+    }
+    
+    .file-name {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    
+    .file-meta {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .file-actions {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .btn-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      font-size: 1.2rem;
+    }
+    
+    .btn-download {
+      background: rgba(102, 126, 234, 0.3);
+      color: #667eea;
+    }
+    
+    .btn-download:hover {
+      background: rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-delete {
+      background: rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+    }
+    
+    .btn-delete:hover {
+      background: rgba(239, 68, 68, 0.5);
+    }
+    
+    .upload-area {
+      border: 2px dashed rgba(255, 255, 255, 0.3);
+      border-radius: 15px;
+      padding: 30px;
+      text-align: center;
+      margin-bottom: 20px;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    
+    .upload-area:hover {
+      border-color: #667eea;
+      background: rgba(102, 126, 234, 0.1);
+    }
+    
+    .upload-area.dragover {
+      border-color: #667eea;
+      background: rgba(102, 126, 234, 0.2);
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .empty-state .icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      padding: 15px 25px;
+      background: rgba(34, 197, 94, 0.9);
+      color: white;
+      border-radius: 10px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    .toast.error {
+      background: rgba(239, 68, 68, 0.9);
+    }
+    
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    input[type="file"] {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="app">
+      <!-- 头部 -->
+      <div class="header">
+        <h1>
+          <span class="mdi mdi-folder-outline"></span>
+          文件管理器
+        </h1>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-secondary" @click="createFolder">
+            <span class="mdi mdi-folder-plus"></span>
+            新建文件夹
+          </button>
+          <label class="btn btn-primary">
+            <span class="mdi mdi-upload"></span>
+            上传文件
+            <input type="file" @change="handleFileSelect" multiple>
+          </label>
+        </div>
+      </div>
+      
+      <!-- 路径栏 -->
+      <div class="path-bar">
+        <button class="btn btn-secondary" @click="goUp" :disabled="!currentPath">
+          <span class="mdi mdi-arrow-up"></span>
+        </button>
+        <input 
+          type="text" 
+          v-model="currentPath" 
+          @keyup.enter="loadFiles"
+          placeholder="输入路径..."
+        >
+        <button class="btn btn-primary" @click="loadFiles">
+          <span class="mdi mdi-refresh"></span>
+          刷新
+        </button>
+      </div>
+      
+      <!-- 拖拽上传区域 -->
+      <div 
+        class="upload-area" 
+        :class="{ dragover: isDragover }"
+        @dragover.prevent="isDragover = true"
+        @dragleave.prevent="isDragover = false"
+        @drop.prevent="handleDrop"
+      >
+        <span class="mdi mdi-cloud-upload" style="font-size: 3rem; color: #667eea;"></span>
+        <p style="margin-top: 15px;">拖拽文件到此处上传，或点击上方"上传文件"按钮</p>
+      </div>
+      
+      <!-- 文件列表 -->
+      <div class="file-list">
+        <div v-if="loading" class="loading">
+          <span class="mdi mdi-loading mdi-spin" style="font-size: 2rem;"></span>
+          <p style="margin-top: 15px;">加载中...</p>
+        </div>
+        
+        <div v-else-if="files.length === 0" class="empty-state">
+          <div class="icon">📁</div>
+          <p>当前目录为空</p>
+        </div>
+        
+        <div v-else>
+          <!-- 父目录 -->
+          <div class="file-item" v-if="currentPath" @click="goUp" style="cursor: pointer;">
+            <span class="file-icon mdi mdi-folder-arrow-up" style="color: #94a3b8;"></span>
+            <div class="file-info">
+              <div class="file-name">..</div>
+              <div class="file-meta">返回上级目录</div>
+            </div>
+          </div>
+          
+          <!-- 文件列表 -->
+          <div 
+            v-for="file in sortedFiles" 
+            :key="file.path" 
+            class="file-item"
+            @dblclick="file.isDirectory ? navigateTo(file.path) : downloadFile(file.path)"
+          >
+            <span 
+              class="file-icon mdi" 
+              :class="file.isDirectory ? 'mdi-folder' : getFileIcon(file.name)"
+              :style="{ color: file.isDirectory ? '#fbbf24' : '#60a5fa' }"
+            ></span>
+            <div class="file-info">
+              <div class="file-name">{{ file.name }}</div>
+              <div class="file-meta">
+                {{ file.isDirectory ? '文件夹' : formatSize(file.size) }}
+                · {{ formatDate(file.modified) }}
+              </div>
+            </div>
+            <div class="file-actions">
+              <button 
+                v-if="!file.isDirectory" 
+                class="btn-icon btn-download" 
+                @click.stop="downloadFile(file.path)"
+                title="下载"
+              >
+                <span class="mdi mdi-download"></span>
+              </button>
+              <button 
+                class="btn-icon btn-delete" 
+                @click.stop="deleteFile(file.path)"
+                title="删除"
+              >
+                <span class="mdi mdi-delete"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 提示消息 -->
+      <div v-if="toast" class="toast" :class="{ error: toast.type === 'error' }">
+        {{ toast.message }}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          currentPath: '',
+          files: [],
+          loading: false,
+          isDragover: false,
+          toast: null,
+          apiBase: window.location.origin
+        }
+      },
+      computed: {
+        sortedFiles() {
+          return [...this.files].sort((a, b) => {
+            if (a.isDirectory === b.isDirectory) {
+              return a.name.localeCompare(b.name);
+            }
+            return a.isDirectory ? -1 : 1;
+          });
+        }
+      },
+      mounted() {
+        this.loadFiles();
+      },
+      methods: {
+        async loadFiles() {
+          this.loading = true;
+          try {
+            const res = await fetch(`${this.apiBase}/api/files?path=${encodeURIComponent(this.currentPath)}`);
+            const data = await res.json();
+            
+            if (res.ok) {
+              this.files = data.files;
+              this.currentPath = data.currentPath === '/' ? '' : data.currentPath;
+            } else {
+              this.showToast(data.error, 'error');
+            }
+          } catch (err) {
+            this.showToast('加载失败：' + err.message, 'error');
+          } finally {
+            this.loading = false;
+          }
+        },
+        
+        navigateTo(path) {
+          this.currentPath = path;
+          this.loadFiles();
+        },
+        
+        goUp() {
+          if (!this.currentPath) return;
+          const parts = this.currentPath.split('/').filter(Boolean);
+          parts.pop();
+          this.currentPath = parts.join('/');
+          this.loadFiles();
+        },
+        
+        async downloadFile(path) {
+          window.open(`${this.apiBase}/api/download?path=${encodeURIComponent(path)}`, '_blank');
+          this.showToast('开始下载：' + path.split('/').pop());
+        },
+        
+        async deleteFile(path) {
+          if (!confirm(`确定要删除 "${path}" 吗？此操作不可恢复！`)) return;
+          
+          try {
+            const res = await fetch(`${this.apiBase}/api/delete?path=${encodeURIComponent(path)}`, {
+              method: 'DELETE'
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+              this.showToast('删除成功');
+              this.loadFiles();
+            } else {
+              this.showToast(data.error, 'error');
+            }
+          } catch (err) {
+            this.showToast('删除失败：' + err.message, 'error');
+          }
+        },
+        
+        async createFolder() {
+          const name = prompt('请输入文件夹名称：');
+          if (!name) return;
+          
+          const newPath = this.currentPath ? `${this.currentPath}/${name}` : name;
+          
+          try {
+            const res = await fetch(`${this.apiBase}/api/mkdir?path=${encodeURIComponent(newPath)}`, {
+              method: 'POST'
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+              this.showToast('文件夹创建成功');
+              this.loadFiles();
+            } else {
+              this.showToast(data.error, 'error');
+            }
+          } catch (err) {
+            this.showToast('创建失败：' + err.message, 'error');
+          }
+        },
+        
+        handleFileSelect(event) {
+          const files = event.target.files;
+          this.uploadFiles(files);
+        },
+        
+        handleDrop(event) {
+          this.isDragover = false;
+          const files = event.dataTransfer.files;
+          this.uploadFiles(files);
+        },
+        
+        async uploadFiles(files) {
+          if (files.length === 0) return;
+          
+          for (const file of files) {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+              const res = await fetch(`${this.apiBase}/api/upload?path=${encodeURIComponent(this.currentPath)}`, {
+                method: 'POST',
+                body: formData
+              });
+              const data = await res.json();
+              
+              if (res.ok) {
+                this.showToast(`上传成功：${file.name}`);
+              } else {
+                this.showToast(`上传失败：${file.name} - ${data.error}`, 'error');
+              }
+            } catch (err) {
+              this.showToast(`上传失败：${file.name}`, 'error');
+            }
+          }
+          
+          this.loadFiles();
+        },
+        
+        getFileIcon(filename) {
+          const ext = filename.split('.').pop().toLowerCase();
+          const iconMap = {
+            'js': 'mdi-language-javascript',
+            'ts': 'mdi-language-typescript',
+            'py': 'mdi-language-python',
+            'html': 'mdi-language-html5',
+            'css': 'mdi-language-css3',
+            'json': 'mdi-code-json',
+            'md': 'mdi-language-markdown',
+            'txt': 'mdi-file-document',
+            'pdf': 'mdi-file-pdf',
+            'jpg': 'mdi-image',
+            'jpeg': 'mdi-image',
+            'png': 'mdi-image',
+            'gif': 'mdi-image',
+            'zip': 'mdi-folder-zip',
+            'rar': 'mdi-folder-zip',
+            'tar': 'mdi-folder-zip',
+            'gz': 'mdi-folder-zip'
+          };
+          return iconMap[ext] || 'mdi-file';
+        },
+        
+        formatSize(bytes) {
+          if (bytes === 0) return '0 B';
+          const k = 1024;
+          const sizes = ['B', 'KB', 'MB', 'GB'];
+          const i = Math.floor(Math.log(bytes) / Math.log(k));
+          return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        },
+        
+        formatDate(dateStr) {
+          const date = new Date(dateStr);
+          return date.toLocaleString('zh-CN');
+        },
+        
+        showToast(message, type = 'success') {
+          this.toast = { message, type };
+          setTimeout(() => {
+            this.toast = null;
+          }, 3000);
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
