@@ -37,8 +37,10 @@ const upload = multer({ storage });
 
 // 获取文件列表
 app.get('/api/files', (req, res) => {
-  const requestPath = req.query.path || '';
-  const safePath = path.resolve(ROOT_DIR, requestPath.replace(/^\.\//, ''));
+  let requestPath = req.query.path || '';
+  // 移除开头的斜杠，确保是相对路径
+  requestPath = requestPath.replace(/^\/+/, '');
+  const safePath = path.join(ROOT_DIR, requestPath);
   
   // 安全检查：确保路径在 ROOT_DIR 内
   if (!safePath.startsWith(ROOT_DIR)) {
@@ -68,8 +70,10 @@ app.get('/api/files', (req, res) => {
 
 // 下载文件
 app.get('/api/download', (req, res) => {
-  const filePath = req.query.path;
-  const safePath = path.resolve(ROOT_DIR, filePath.replace(/^\.\//, ''));
+  let filePath = req.query.path || '';
+  // 移除开头的斜杠，确保是相对路径
+  filePath = filePath.replace(/^\/+/, '');
+  const safePath = path.join(ROOT_DIR, filePath);
   
   if (!safePath.startsWith(ROOT_DIR)) {
     return res.status(403).json({ error: 'Access denied' });
@@ -93,17 +97,24 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     return res.status(400).json({ error: 'No file uploaded' });
   }
   
+  // 计算相对路径
+  let uploadPath = req.query.path || '';
+  uploadPath = uploadPath.replace(/^\/+/, '');
+  const relativePath = uploadPath ? `${uploadPath}/${req.file.originalname}` : req.file.originalname;
+  
   res.json({
     success: true,
     filename: req.file.originalname,
-    path: req.file.path
+    path: relativePath
   });
 });
 
 // 创建目录
 app.post('/api/mkdir', (req, res) => {
-  const dirPath = req.query.path;
-  const safePath = path.resolve(ROOT_DIR, dirPath.replace(/^\.\//, ''));
+  let dirPath = req.query.path || '';
+  // 移除开头的斜杠，确保是相对路径
+  dirPath = dirPath.replace(/^\/+/, '');
+  const safePath = path.join(ROOT_DIR, dirPath);
   
   if (!safePath.startsWith(ROOT_DIR)) {
     return res.status(403).json({ error: 'Access denied' });
@@ -119,8 +130,10 @@ app.post('/api/mkdir', (req, res) => {
 
 // 删除文件/目录
 app.delete('/api/delete', (req, res) => {
-  const filePath = req.query.path;
-  const safePath = path.resolve(ROOT_DIR, filePath.replace(/^\.\//, ''));
+  let filePath = req.query.path || '';
+  // 移除开头的斜杠，确保是相对路径
+  filePath = filePath.replace(/^\/+/, '');
+  const safePath = path.join(ROOT_DIR, filePath);
   
   if (!safePath.startsWith(ROOT_DIR)) {
     return res.status(403).json({ error: 'Access denied' });
@@ -131,7 +144,7 @@ app.delete('/api/delete', (req, res) => {
   }
   
   // 不允许删除 ROOT_DIR 本身
-  if (safePath === ROOT_DIR) {
+  if (safePath === ROOT_DIR || filePath === '') {
     return res.status(403).json({ error: 'Cannot delete root directory' });
   }
   
